@@ -706,7 +706,7 @@
             overflow-y: hidden;
             overflow-x: hidden;
             max-height: 0;
-            display: flex;
+            display: none;
             flex-direction: column;
             gap: 0;
             color: #f2e9ff;
@@ -717,6 +717,7 @@
             transition: max-height 0.3s ease, padding 0.3s ease, gap 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
         }
         #captured-pieces.expanded {
+            display: flex;
             padding: 20px;
             overflow-y: auto;
             max-height: var(--board-panel-max-height, 420px);
