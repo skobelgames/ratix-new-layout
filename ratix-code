@@ -564,8 +564,9 @@
         }
         #top-buttons-left button,
         #top-buttons-right button {
-            padding: 8px 12px;
-            font-size: 12px;
+            padding: 10px 12px;
+            font-size: 14px;
+            width: 120px;
             background-color: #000;
             color: #999;
             border: 1px solid #333;
