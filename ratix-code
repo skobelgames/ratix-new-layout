@@ -533,10 +533,10 @@
             box-sizing: border-box;
             min-height: 0;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 15px;
             word-wrap: break-word;
             overflow-wrap: break-word;
         }
@@ -1962,6 +1962,10 @@
                 <div class="timer-row player" id="player-timer-row">Turn Time: 00:00</div>
                 </div>
                 </div>
+                <div id="round-timer-box">
+                    <div id="round-number-display">Round 1</div>
+                    <div id="game-timer-row">Game Time: 00:00</div>
+                </div>
             </aside>
             <div id="board-column">
                 <div id="board"></div>
@@ -1996,10 +2000,6 @@
                 <div class="player-score" id="ai-score-value">Score: 0</div>
                 <div class="timer-row ai" id="ai-timer-row">Turn Time: 00:00</div>
                 </div>
-                </div>
-                <div id="round-timer-box">
-                    <div id="round-number-display">Round 1</div>
-                    <div id="game-timer-row">Game Time: 00:00</div>
                 </div>
                 <div id="status">Player's turn: 3 moves remaining</div>
                 <div id="game-log"></div>
