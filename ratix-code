@@ -522,18 +522,45 @@
             word-wrap: break-word;
             overflow-wrap: break-word;
         }
-        #score-display {
+        #top-bar {
             width: 100%;
-            max-width: 960px;
+            max-width: 1264px;
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: stretch;
+            justify-content: space-between;
+            align-items: center;
             gap: 20px;
             color: #fff;
             margin: 10px auto 0;
             box-sizing: border-box;
-            overflow: hidden;
+        }
+        #top-buttons-left,
+        #top-buttons-right {
+            display: flex;
+            gap: 5px;
+            flex: 0 0 auto;
+        }
+        #top-buttons-left button,
+        #top-buttons-right button {
+            padding: 8px 12px;
+            font-size: 12px;
+            background-color: #000;
+            color: #999;
+            border: 1px solid #333;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            white-space: nowrap;
+        }
+        #top-buttons-left button:hover,
+        #top-buttons-right button:hover {
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        #top-buttons-left .toggle-button.active,
+        #top-buttons-right .toggle-button.active {
+            background-color: #1a1a1a;
+            color: #fff;
+            border-color: #555;
         }
         .player-panel,
         .round-panel {
@@ -544,8 +571,6 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            min-width: 220px;
-            min-height: 70px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
             color: #fff;
             box-sizing: border-box;
@@ -554,11 +579,11 @@
             overflow: hidden;
         }
         .player-panel {
-            flex: 1 1 280px;
-            max-width: 340px;
+            width: 100%;
             text-align: left;
             position: relative;
             justify-content: flex-end;
+            min-height: 90px;
         }
         .panel-content {
             display: flex;
@@ -574,10 +599,13 @@
             text-align: right;
         }
         .round-panel {
-            flex: 0 0 220px;
+            flex: 0 0 auto;
             align-items: center;
             text-align: center;
             justify-content: center;
+            min-width: 200px;
+            padding: 6px 16px;
+            min-height: 0;
         }
         .player-name {
             font-size: 14px;
@@ -840,7 +868,7 @@
             max-width: 1264px;
             justify-content: center;
             align-items: flex-start;
-            margin: 20px auto 0;
+            margin: 10px auto 0;
         }
         #board-column {
             display: flex;
@@ -860,43 +888,11 @@
             min-width: 260px;
             max-width: 260px;
         }
-        #left-controls,
-        #right-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        #left-panel {
+            align-items: stretch;
         }
-        #left-controls button,
-        #right-controls button {
-            width: 100%;
-            min-width: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        #control-buttons-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-        #control-buttons-grid button {
-            width: 100%;
-            min-width: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-size: 12px;
-            padding: 8px 4px;
-            background-color: #000;
-            color: #999;
-            border: 1px solid #333;
-            border-radius: 5px;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-        #control-buttons-grid button:hover {
-            background-color: #1a1a1a;
-            color: #bbb;
+        #right-panel {
+            align-items: stretch;
         }
         .toggle-button {
             width: 100%;
@@ -1919,32 +1915,32 @@
     </div>
     <footer id="landing-footer">RATIX &copy; 2025 Skobel Games</footer>
     <div id="game-container">
-        <div id="score-display">
-            <div class="player-panel" id="player-panel">
-            <div id="player-reaction-emoji" class="reaction-emoji"></div>
-            <div class="panel-content">
-            <div class="player-name" id="player-name-label">Player</div>
-            <div class="player-score" id="player-score-value">Score: 0</div>
-            <div class="timer-row player" id="player-timer-row">Turn Time: 00:00</div>
-            </div>
+        <div id="top-bar">
+            <div id="top-buttons-left">
+                <button class="how-to-button" onclick="openHowToPlay()">How to Play</button>
+                <button id="RATIX-brand-button" type="button">RATIX</button>
+                <button onclick="returnToMainMenu()">Main Menu</button>
             </div>
             <div class="round-panel">
                 <div id="round-number-display">Round 1</div>
                 <div class="timer-row game" id="game-timer-row">Game Time: 00:00</div>
             </div>
-            <div class="player-panel" id="ai-panel">
-            <div id="ai-reaction-emoji" class="reaction-emoji"></div>
-            <div class="panel-content ai-content">
-            <div class="player-name" id="ai-name-label">Opponent</div>
-            <div class="player-score" id="ai-score-value">Score: 0</div>
-            <div class="timer-row ai" id="ai-timer-row">Turn Time: 00:00</div>
-            </div>
+            <div id="top-buttons-right">
+                <button onclick="resetGame()">Reset Game</button>
+                <button class="toggle-button" id="game-log-toggle" onclick="toggleGameLog()">Game Log</button>
+                <button class="toggle-button" id="graveyard-toggle" onclick="toggleGraveyard()">Graveyard</button>
             </div>
         </div>
         <div id="game-layout">
             <aside id="left-panel">
-                <div id="game-log"></div>
-                <div id="info-box"></div>
+                <div class="player-panel" id="player-panel">
+                <div id="player-reaction-emoji" class="reaction-emoji"></div>
+                <div class="panel-content">
+                <div class="player-name" id="player-name-label">Player</div>
+                <div class="player-score" id="player-score-value">Score: 0</div>
+                <div class="timer-row player" id="player-timer-row">Turn Time: 00:00</div>
+                </div>
+                </div>
             </aside>
             <div id="board-column">
                 <div id="board"></div>
@@ -1972,17 +1968,17 @@
                 </div>
             </div>
             <aside id="right-panel">
-                <div id="right-controls">
-                    <div id="control-buttons-grid">
-                        <button class="how-to-button" onclick="openHowToPlay()">How to Play</button>
-                        <button id="RATIX-brand-button" type="button">RATIX</button>
-                        <button onclick="returnToMainMenu()">Main Menu</button>
-                        <button onclick="resetGame()">Reset Game</button>
-                        <button class="toggle-button" id="game-log-toggle" onclick="toggleGameLog()">Game Log</button>
-                        <button class="toggle-button" id="graveyard-toggle" onclick="toggleGraveyard()">Graveyard</button>
-                    </div>
-                    <div id="status">Player's turn: 3 moves remaining</div>
+                <div class="player-panel" id="ai-panel">
+                <div id="ai-reaction-emoji" class="reaction-emoji"></div>
+                <div class="panel-content ai-content">
+                <div class="player-name" id="ai-name-label">Opponent</div>
+                <div class="player-score" id="ai-score-value">Score: 0</div>
+                <div class="timer-row ai" id="ai-timer-row">Turn Time: 00:00</div>
                 </div>
+                </div>
+                <div id="status">Player's turn: 3 moves remaining</div>
+                <div id="game-log"></div>
+                <div id="info-box"></div>
                 <div id="captured-pieces" aria-label="Graveyard">
                     <div class="graveyard-header">
                         <div class="graveyard-title">The Graveyard</div>
