@@ -522,11 +522,34 @@
             word-wrap: break-word;
             overflow-wrap: break-word;
         }
+        #round-timer-box {
+            width: 100%;
+            padding: 10px;
+            background-color: #000;
+            border: 1px solid #333;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #999;
+            box-sizing: border-box;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        #round-timer-box #round-number-display,
+        #round-timer-box #game-timer-row {
+            margin: 0;
+            text-align: center;
+        }
         #top-bar {
             width: 100%;
             max-width: 1264px;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             gap: 20px;
             color: #fff;
@@ -677,7 +700,8 @@
         #info-box {
             width: 100%;
             padding: 15px;
-            background-color: #fff;
+            background-color: #000;
+            color: #999;
             border: 1px solid #333;
             border-radius: 5px;
             font-size: 14px;
@@ -702,7 +726,8 @@
             min-height: 0;
             max-height: 0;
             padding: 0 15px;
-            background-color: #fff;
+            background-color: #000;
+            color: #999;
             border: 1px solid #333;
             border-radius: 5px;
             font-size: 14px;
@@ -1921,10 +1946,6 @@
                 <button id="RATIX-brand-button" type="button">RATIX</button>
                 <button onclick="returnToMainMenu()">Main Menu</button>
             </div>
-            <div class="round-panel">
-                <div id="round-number-display">Round 1</div>
-                <div class="timer-row game" id="game-timer-row">Game Time: 00:00</div>
-            </div>
             <div id="top-buttons-right">
                 <button onclick="resetGame()">Reset Game</button>
                 <button class="toggle-button" id="game-log-toggle" onclick="toggleGameLog()">Game Log</button>
@@ -1975,6 +1996,10 @@
                 <div class="player-score" id="ai-score-value">Score: 0</div>
                 <div class="timer-row ai" id="ai-timer-row">Turn Time: 00:00</div>
                 </div>
+                </div>
+                <div id="round-timer-box">
+                    <div id="round-number-display">Round 1</div>
+                    <div id="game-timer-row">Game Time: 00:00</div>
                 </div>
                 <div id="status">Player's turn: 3 moves remaining</div>
                 <div id="game-log"></div>
