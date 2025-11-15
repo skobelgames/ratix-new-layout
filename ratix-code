@@ -696,9 +696,9 @@
         #captured-pieces {
             position: relative;
             width: 100%;
-            padding: 0 20px;
+            padding: 0;
             background: radial-gradient(circle at top, #31213f 0%, #1a1323 55%, #0d0a12 100%);
-            border: 1px solid #4c2b63;
+            border: none;
             border-radius: 12px;
             font-size: 14px;
             text-align: left;
@@ -710,17 +710,19 @@
             flex-direction: column;
             gap: 0;
             color: #f2e9ff;
-            box-shadow: 0 18px 45px rgba(9, 0, 20, 0.65);
+            box-shadow: none;
             isolation: isolate;
             word-wrap: break-word;
             overflow-wrap: break-word;
-            transition: max-height 0.3s ease, padding 0.3s ease, gap 0.3s ease;
+            transition: max-height 0.3s ease, padding 0.3s ease, gap 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
         }
         #captured-pieces.expanded {
             padding: 20px;
             overflow-y: auto;
             max-height: var(--board-panel-max-height, 420px);
             gap: 18px;
+            border: 1px solid #4c2b63;
+            box-shadow: 0 18px 45px rgba(9, 0, 20, 0.65);
         }
         #captured-pieces::before {
             content: "";
