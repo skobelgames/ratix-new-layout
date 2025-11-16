@@ -2270,6 +2270,7 @@
         let necromancerSummonMode = null; // Necromancer summon targeting state
         let kingShotMode = null; // King shot targeting mode
         let kingEvadeMode = null; // King evade destination selection
+        let kingSummonMode = null; // King summon placement selection { unitType, emptySquares }
         let pendingLichSoulBlast = null; // Tracks pending Soul Blast coin flip
         let lichSoulBlastMode = null; // Soul Blast targeting context
         let lichSoulBlastResolving = false; // Prevent inputs while blast resolves
@@ -2569,6 +2570,7 @@
                 movesLeft = 0;
                 initialMovesLeft = 0;
                 capturedPieces = { 'W': [], 'B': [] };
+                wizardSacrificedByPlayer = { 'W': false, 'B': false };
                 scores = { 'W': 0, 'B': 0 };
                 gameLog = [];
                 lastAction = null;
@@ -3554,6 +3556,7 @@
             darkVoidMode = null;
             kingShotMode = null;
             kingEvadeMode = null;
+            kingSummonMode = null;
             pendingLichSoulBlast = null;
             lichSoulBlastMode = null;
             voidBlastMode = false;
@@ -3806,6 +3809,7 @@
         let spectresSummoned = { 'W': 0, 'B': 0 }; // Spectre summoning (limit 2 per player)
         let wizardSummonedThisTurn = { 'W': false, 'B': false }; // Track if wizard summoned this turn
         let wizardCannotMoveNextTurn = { 'W': new Set(), 'B': new Set() }; // Wizards that cannot move next turn
+        let wizardSacrificedByPlayer = { 'W': false, 'B': false }; // Track if player has sacrificed a wizard
         let necromancersSummoned = { 'W': 0, 'B': 0 }; // Necromancer summoning (limit 2 per player)
         let necromancerTeleportCounts = new Map(); // Track per-piece teleport usage
         let necromancerShootCooldown = new Map(); // Track per-piece ranged cooldown
@@ -3857,9 +3861,24 @@
             return 3 + Math.min(zombieConversions[player] || 0, 2);
         }
 
+        function getTotalCapturedCount() {
+            return (capturedPieces['W'] || []).length + (capturedPieces['B'] || []).length;
+        }
+
+        function recordGraveyardCapture(player, piece) {
+            if (!player || !piece) return;
+            capturedPieces[player].push(piece);
+        }
+
+        function hasNecromancerSummonPrerequisite(player) {
+            if (wizardSacrificedByPlayer[player]) return true;
+            return getTotalCapturedCount() >= 10;
+        }
+
         function canChampionSummonNecromancer(player) {
             if (gameVariant !== '36s-elite' && gameVariant !== '36s-supreme') return false;
-            return (necromancersSummoned[player] || 0) < 2;
+            if ((necromancersSummoned[player] || 0) >= 2) return false;
+            return hasNecromancerSummonPrerequisite(player);
         }
 
         function canChampionSummonHuntsman(player) {
@@ -4367,7 +4386,7 @@
         function capturePieceForZombie(player, row, col, targetPiece) {
             cleanupNecromancerTracking(targetPiece);
             capturedSquares.push([row, col]);
-            capturedPieces[player].push(targetPiece);
+            recordGraveyardCapture(player, targetPiece);
             const captureValue = pieceValues[targetPiece.type] || 0;
             scores[player] += captureValue;
             registerScoreGain(player, captureValue, true);
@@ -4466,7 +4485,7 @@
                 cleanupNecromancerTracking(targetPiece);
                 board[targetRow][targetCol] = null;
                 capturedSquares.push([targetRow, targetCol]);
-                capturedPieces[attackerPiece.player].push(targetPiece);
+                recordGraveyardCapture(attackerPiece.player, targetPiece);
                 const captureValue = pieceValues[targetPiece.type] || 0;
                 scores[attackerPiece.player] += captureValue;
                 registerScoreGain(attackerPiece.player, captureValue, true);
@@ -4491,7 +4510,7 @@
                 cleanupNecromancerTracking(targetPiece);
                 board[targetRow][targetCol] = null;
                 capturedSquares.push([targetRow, targetCol]);
-                capturedPieces[attackerPiece.player].push(targetPiece);
+                recordGraveyardCapture(attackerPiece.player, targetPiece);
                 const captureValue = pieceValues[targetPiece.type] || 0;
                 scores[attackerPiece.player] += captureValue;
                 registerScoreGain(attackerPiece.player, captureValue, true);
@@ -4509,7 +4528,7 @@
                     board[fromRow][fromCol] = null;
                     cleanupNecromancerTracking(attackerPiece);
                     capturedSquares.push([fromRow, fromCol]);
-                    capturedPieces[zombieOwner].push(attackerPiece);
+                    recordGraveyardCapture(zombieOwner, attackerPiece);
                     registerPieceLoss(attackerPiece.player, attackerPiece.type);
                     scores[zombieOwner] += 3;
                     registerScoreGain(zombieOwner, 3);
@@ -7815,6 +7834,8 @@
                             if (canSummonNecro) {
                                 championSummonNecroButton.style.display = 'inline';
                                 championSummonNecroButton.disabled = movesLeft < 2;
+                            } else {
+                                championSummonNecroButton.style.display = 'none';
                             }
                         }
                         if (championSummonHuntsmanButton) {
@@ -7822,6 +7843,8 @@
                             if (canSummonHuntsman) {
                                 championSummonHuntsmanButton.style.display = 'inline';
                                 championSummonHuntsmanButton.disabled = movesLeft < 2;
+                            } else {
+                                championSummonHuntsmanButton.style.display = 'none';
                             }
                         }
                     }
@@ -7974,7 +7997,7 @@
                     }
                     // Show Summon Spectre button for Wizard
                     if (piece.type === 'Wizard' && movesLeft >= 2 && spectresSummoned[currentPlayer] < 2 && !wizardSummonedThisTurn[currentPlayer]) {
-                        const totalCaptured = capturedPieces['W'].length + capturedPieces['B'].length;
+                        const totalCaptured = getTotalCapturedCount();
                         if (totalCaptured >= 5) {
                             summonSpectreButton.style.display = 'inline';
                             summonSpectreButton.disabled = false;
@@ -9737,6 +9760,12 @@
                 championCaptured[player] = true;
                 championsOnBackRow[player] = championsOnBackRow[player].filter(([r, c]) => !(r === row && c === col));
             }
+
+            // Track wizard sacrifice for necromancer summoning exception
+            if (piece.type === 'Wizard') {
+                wizardSacrificedByPlayer[player] = true;
+            }
+
             cleanupNecromancerTracking(piece);
             board[row][col] = null;
 
@@ -10920,7 +10949,7 @@
                             const capturedPiece = board[captureRow][captureCol];
                             if (capturedPiece) {
                                 capturedSquares.push([captureRow, captureCol]);
-                                capturedPieces[currentPlayer].push(capturedPiece);
+                                recordGraveyardCapture(currentPlayer, capturedPiece);
                                 const captureValue = pieceValues[capturedPiece.type];
                                 scores[currentPlayer] += captureValue;
                                 registerScoreGain(currentPlayer, captureValue, true);
@@ -11066,7 +11095,7 @@
                         if (targetPiece.lives <= 0) {
                             // Undead destroyed
                             capturedSquares.push([targetRow, targetCol]);
-                            capturedPieces[currentPlayer].push(targetPiece);
+                            recordGraveyardCapture(currentPlayer, targetPiece);
                             const captureValue = pieceValues[targetPiece.type];
                             scores[currentPlayer] += captureValue;
                             registerScoreGain(currentPlayer, captureValue, true);
@@ -11085,7 +11114,7 @@
                         }
                     } else if (targetPiece && targetPiece.player !== currentPlayer) {
                         capturedSquares.push([targetRow, targetCol]);
-                        capturedPieces[currentPlayer].push(targetPiece);
+                        recordGraveyardCapture(currentPlayer, targetPiece);
                         const captureValue = pieceValues[targetPiece.type];
                         scores[currentPlayer] += captureValue;
                         registerScoreGain(currentPlayer, captureValue, true);
@@ -11336,6 +11365,14 @@
                 }
                 if (move) {
                     processNecromancerSummonMove(move, necromancerSummonMode);
+                }
+                return;
+            }
+
+            // Handle King summon placement
+            if (kingSummonMode) {
+                if (row === kingSummonMode.backRow && kingSummonMode.emptySquares.includes(col)) {
+                    completeKingSummonPlacement(row, col);
                 }
                 return;
             }
@@ -12031,7 +12068,7 @@
                 return;
             }
             const piece = board[selectedPiece.row][selectedPiece.col];
-            const totalCaptured = capturedPieces['W'].length + capturedPieces['B'].length;
+            const totalCaptured = getTotalCapturedCount();
 
             if (piece.type === 'Wizard' && spectresSummoned[currentPlayer] < 2 && !wizardSummonedThisTurn[currentPlayer] && totalCaptured >= 5) {
                 setActiveControlButton(button || document.getElementById('summon-spectre-button'));
@@ -12621,7 +12658,7 @@
                 `Attempting to summon ${unitType}...`,
                 (success) => {
                     if (success) {
-                        // Find empty square in back row
+                        // Find empty squares in back row
                         const backRow = currentPlayer === 'W' ? ROWS - 1 : 0;
                         let emptySquares = [];
                         for (let c = 0; c < COLS; c++) {
@@ -12631,45 +12668,89 @@
                         }
 
                         if (emptySquares.length > 0) {
-                            // Place unit in first available empty square
-                            const col = emptySquares[0];
-                            const needsFacing = turnablePieces.includes(unitType);
-                            const facing = needsFacing ? (currentPlayer === 'W' ? 'U' : 'D') : null;
-                            board[backRow][col] = { type: unitType, player: currentPlayer, facing };
-
-                            // Update summon counter
-                            if (unitType === 'Pistolier') {
-                                pistoliersSummoned[currentPlayer]++;
-                            } else if (unitType === 'Fusilier') {
-                                fusiliersSummoned[currentPlayer]++;
-                            }
-
-                            gameStats.summonCount[currentPlayer]++; // Track summon for statistics
-                            gameLog.push(`${currentPlayer === 'W' ? 'Player' : 'AI'} successfully summoned ${unitType} at ${formatBoardCoordinates(backRow,col)}!`);
+                            // Enter placement selection mode
+                            kingSummonMode = {
+                                unitType: unitType,
+                                emptySquares: emptySquares,
+                                backRow: backRow
+                            };
+                            gameLog.push(`${currentPlayer === 'W' ? 'Player' : 'AI'} successfully summoned ${unitType}! Select a square on the back row to place it.`);
+                            validMoves = emptySquares.map(col => ({ row: backRow, col: col }));
+                            renderBoard();
+                            updateGameLog();
                         } else {
                             gameLog.push(`${currentPlayer === 'W' ? 'Player' : 'AI'} succeeded summon but no empty squares in back row!`);
+                            lastAction = { move: true };
+                            movedPieces.add(`${selectedPiece.row},${selectedPiece.col}`);
+                            selectedPiece = null;
+                            validMoves = [];
+                            showPieceInfo(null);
+                            renderBoard();
+                            updateStatus();
+                            updateEndTurnButton();
+                            updateGameLog();
+                            checkGameOver();
+                            if (movesLeft === 0 && !reinforcementPending) {
+                                triggerAiTurn();
+                            }
                         }
                     } else {
                         gameLog.push(`${currentPlayer === 'W' ? 'Player' : 'AI'} failed to summon ${unitType}.`);
-                    }
-
-                    lastAction = { move: true };
-                    movedPieces.add(`${selectedPiece.row},${selectedPiece.col}`);
-                    selectedPiece = null;
-                    validMoves = [];
-                    showPieceInfo(null);
-                    renderBoard();
-                    updateStatus();
-                    updateEndTurnButton();
-                    updateGameLog();
-                    checkGameOver();
-                    if (movesLeft === 0 && !reinforcementPending) {
-                        triggerAiTurn();
+                        lastAction = { move: true };
+                        movedPieces.add(`${selectedPiece.row},${selectedPiece.col}`);
+                        selectedPiece = null;
+                        validMoves = [];
+                        showPieceInfo(null);
+                        renderBoard();
+                        updateStatus();
+                        updateEndTurnButton();
+                        updateGameLog();
+                        checkGameOver();
+                        if (movesLeft === 0 && !reinforcementPending) {
+                            triggerAiTurn();
+                        }
                     }
                 },
                 false, // automated
                 false  // showOverlay
             );
+        }
+
+        function completeKingSummonPlacement(row, col) {
+            if (!kingSummonMode) return;
+
+            const { unitType, backRow } = kingSummonMode;
+            const needsFacing = turnablePieces.includes(unitType);
+            const facing = needsFacing ? (currentPlayer === 'W' ? 'U' : 'D') : null;
+
+            // Place the unit at the selected position
+            board[backRow][col] = { type: unitType, player: currentPlayer, facing };
+
+            // Update summon counter
+            if (unitType === 'Pistolier') {
+                pistoliersSummoned[currentPlayer]++;
+            } else if (unitType === 'Fusilier') {
+                fusiliersSummoned[currentPlayer]++;
+            }
+
+            gameStats.summonCount[currentPlayer]++; // Track summon for statistics
+            gameLog.push(`${currentPlayer === 'W' ? 'Player' : 'AI'} placed ${unitType} at ${formatBoardCoordinates(backRow, col)}!`);
+
+            // Clean up and complete action
+            kingSummonMode = null;
+            lastAction = { move: true };
+            movedPieces.add(`${selectedPiece.row},${selectedPiece.col}`);
+            selectedPiece = null;
+            validMoves = [];
+            showPieceInfo(null);
+            renderBoard();
+            updateStatus();
+            updateEndTurnButton();
+            updateGameLog();
+            checkGameOver();
+            if (movesLeft === 0 && !reinforcementPending) {
+                triggerAiTurn();
+            }
         }
 
         function getLichSoulBlastRange(player) {
@@ -13691,7 +13772,7 @@
                             const capturedPiece = board[captureRow][captureCol];
                             if (capturedPiece) {
                                 capturedSquares.push([captureRow, captureCol]);
-                                capturedPieces[currentPlayer].push(capturedPiece);
+                                recordGraveyardCapture(currentPlayer, capturedPiece);
                                 const captureValue = pieceValues[capturedPiece.type];
                                 scores[currentPlayer] += captureValue;
                                 registerScoreGain(currentPlayer, captureValue, true);
@@ -13836,8 +13917,8 @@
 
                         if (targetPiece.lives <= 0) {
                             // Undead destroyed
-                            capturedSquares.push([targetRow, targetCol]);
-                            capturedPieces[currentPlayer].push(targetPiece);
+                        capturedSquares.push([targetRow, targetCol]);
+                        recordGraveyardCapture(currentPlayer, targetPiece);
                             const captureValue = pieceValues[targetPiece.type];
                             scores[currentPlayer] += captureValue;
                             registerScoreGain(currentPlayer, captureValue, true);
@@ -13856,7 +13937,7 @@
                         }
                     } else if (targetPiece && targetPiece.player !== currentPlayer) {
                         capturedSquares.push([targetRow, targetCol]);
-                        capturedPieces[currentPlayer].push(targetPiece);
+                        recordGraveyardCapture(currentPlayer, targetPiece);
                         const captureValue = pieceValues[targetPiece.type];
                         scores[currentPlayer] += captureValue;
                         registerScoreGain(currentPlayer, captureValue, true);
@@ -14028,6 +14109,15 @@
             }
             return;
         }
+
+        // Handle King summon placement
+        if (kingSummonMode) {
+            if (row === kingSummonMode.backRow && kingSummonMode.emptySquares.includes(col)) {
+                completeKingSummonPlacement(row, col);
+            }
+            return;
+        }
+
             if (necromancerSummonMode && selectedPiece) {
                 let move = validMoves.find(m => m.pos[0] === row && m.pos[1] === col && m.special === 'necromancerSummon');
                 if (!move && necromancerSummonMode && (necromancerSummonMode.type === 'undead' || necromancerSummonMode.type === 'undeadchampion') && board[row]?.[col]?.type === 'DarkVoid') {
@@ -14790,7 +14880,7 @@
                 return;
             }
             const piece = board[selectedPiece.row][selectedPiece.col];
-            const totalCaptured = capturedPieces['W'].length + capturedPieces['B'].length;
+            const totalCaptured = getTotalCapturedCount();
 
             if (piece.type === 'Wizard' && spectresSummoned[currentPlayer] < 2 && !wizardSummonedThisTurn[currentPlayer] && totalCaptured >= 5) {
                 summonSpectreMode = true;
@@ -15184,7 +15274,7 @@
                         }
                         capturedSomething = true;
                         capturedSquares.push([nr, nc]);
-                        capturedPieces[player].push(targetPiece);
+                        recordGraveyardCapture(player, targetPiece);
                         const captureValue = pieceValues[targetPiece.type];
                         totalCaptureValue += captureValue; // Add to total
                         scores[player] += captureValue;
@@ -15249,7 +15339,7 @@
                 const captureValue = pieceValues[targetPiece.type] || 0;
                 totalCaptureValue += captureValue;
                 capturedSquares.push([r, c]);
-                capturedPieces[player].push(targetPiece);
+                recordGraveyardCapture(player, targetPiece);
                 scores[player] += captureValue;
                 registerScoreGain(player, captureValue, true);
                 registerPieceLoss(targetPiece.player, targetPiece.type);
@@ -15369,7 +15459,7 @@
         function recordUndeadCapture(attackerPiece, owner, row, col, captureValue) {
             if (!attackerPiece) return;
             capturedSquares.push([row, col]);
-            capturedPieces[owner].push(attackerPiece);
+            recordGraveyardCapture(owner, attackerPiece);
             scores[owner] += captureValue;
             registerScoreGain(owner, captureValue, true);
             registerPieceLoss(attackerPiece.player, attackerPiece.type);
@@ -15413,7 +15503,7 @@
                         }
                     }
                     capturedSquares.push([jump[0], jump[1]]);
-                    capturedPieces[piece.player].push(capturedPiece);
+                    recordGraveyardCapture(piece.player, capturedPiece);
                     captureValue = pieceValues[capturedPiece.type];
                     scores[piece.player] += captureValue;
                     registerScoreGain(piece.player, captureValue, true);
@@ -15470,8 +15560,8 @@
                                 return null;
                             }
                         }
-                        capturedSquares.push([toRow, toCol]);
-                        capturedPieces[piece.player].push(capturedPiece);
+                    capturedSquares.push([toRow, toCol]);
+                    recordGraveyardCapture(piece.player, capturedPiece);
                         captureValue = pieceValues[capturedPiece.type];
                         scores[piece.player] += captureValue;
                         registerScoreGain(piece.player, captureValue, true);
@@ -15619,8 +15709,8 @@
 
                 if (targetPiece.lives <= 0) {
                     // Undead destroyed
-                    capturedSquares.push([toRow, toCol]);
-                    capturedPieces[piece.player].push(targetPiece);
+            capturedSquares.push([toRow, toCol]);
+            recordGraveyardCapture(piece.player, targetPiece);
                     const captureValue = pieceValues[targetPiece.type];
                     scores[piece.player] += captureValue;
                     registerScoreGain(piece.player, captureValue, true);
@@ -15678,7 +15768,7 @@
             }
             if (targetPiece) {
                 capturedSquares.push([toRow, toCol]);
-                capturedPieces[piece.player].push(targetPiece);
+                recordGraveyardCapture(piece.player, targetPiece);
                 captureValue = pieceValues[targetPiece.type];
                 scores[piece.player] += captureValue;
                 registerScoreGain(piece.player, captureValue);
@@ -15746,8 +15836,8 @@
                 }
             }
 
-            capturedSquares.push([targetRow, targetCol]);
-            capturedPieces[attackerPlayer].push(targetPiece);
+        capturedSquares.push([targetRow, targetCol]);
+        recordGraveyardCapture(attackerPlayer, targetPiece);
             const captureValue = pieceValues[targetPiece.type] || 0;
             scores[attackerPlayer] += captureValue;
             registerScoreGain(attackerPlayer, captureValue, true);
@@ -15870,6 +15960,7 @@
                         facing: turnablePieces.includes(type) ? (player === 'W' ? 'U' : 'D') : null
                     };
                     gameLog.push(`${player === 'W' ? 'Player' : 'AI'} reinforced ${type} at ${formatBoardCoordinates(backRow,c)}`);
+                    decrementGraveyardCount();
                     relentlessTriggered = registerReinforcement(player, type);
                     break;
                 }
@@ -16470,7 +16561,7 @@
 
                             // Check for Wizard Spectre Summoning
                             if (piece.type === 'Wizard' && spectresSummoned[player] < 2 && !wizardSummonedThisTurn[player] && movesLeft >= 2) {
-                                const totalCaptured = capturedPieces['W'].length + capturedPieces['B'].length;
+                                const totalCaptured = getTotalCapturedCount();
                                 if (totalCaptured >= 5) {
                                     const summonDirs = [[0,1], [0,-1], [1,0], [-1,0], [1,1], [1,-1], [-1,1], [-1,-1]];
                                     for (let d of summonDirs) {
@@ -16572,8 +16663,8 @@
                             // Check for Champion Summoning (Necromancer, Huntsman)
                             if (piece.type === 'Champion' && (gameVariant === '36s-elite' || gameVariant === '36s-supreme') && movesLeft >= 2) {
                                 const backRow = player === 'W' ? ROWS - 1 : 0;
-                                // Check for Necromancer summoning
-                                if ((necromancersSummoned[player] || 0) < 2) {
+                                const canSummonNecroAction = canChampionSummonNecromancer(player);
+                                if (canSummonNecroAction) {
                                     for (let col = 0; col < COLS; col++) {
                                         if (aiTimeExpired()) break outerBuild;
                                         if (!board[backRow][col]) {
@@ -18040,6 +18131,12 @@
                             const summonRow = pos[0];
                             const summonCol = pos[1];
                             const summonType = action.summonType || 'Necromancer';
+                            if (summonType === 'Necromancer' && !canChampionSummonNecromancer(championPiece.player)) {
+                                gameLog.push(`${getOpponentDisplayName()} cannot summon a Necromancer yet.`);
+                                updateGameLog();
+                                setTimeout(() => makeNextMove(), 400);
+                                return;
+                            }
                             movesLeft -= cost;
                             performCoinToss(
                                 'Champion Summon',
@@ -18559,6 +18656,7 @@
             spectresSummoned = { 'W': 0, 'B': 0 };
             wizardSummonedThisTurn = { 'W': false, 'B': false };
             wizardCannotMoveNextTurn = { 'W': new Set(), 'B': new Set() };
+            wizardSacrificedByPlayer = { 'W': false, 'B': false };
             necromancersSummoned = { 'W': 0, 'B': 0 };
             huntsmenSummoned = { 'W': 0, 'B': 0 };
             huntsmenOnBoard = { 'W': 0, 'B': 0 };
