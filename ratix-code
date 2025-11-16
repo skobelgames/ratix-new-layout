@@ -7825,6 +7825,8 @@
                             if (canSummonNecro) {
                                 championSummonNecroButton.style.display = 'inline';
                                 championSummonNecroButton.disabled = movesLeft < 2;
+                            } else {
+                                championSummonNecroButton.style.display = 'none';
                             }
                         }
                         if (championSummonHuntsmanButton) {
@@ -7832,6 +7834,8 @@
                             if (canSummonHuntsman) {
                                 championSummonHuntsmanButton.style.display = 'inline';
                                 championSummonHuntsmanButton.disabled = movesLeft < 2;
+                            } else {
+                                championSummonHuntsmanButton.style.display = 'none';
                             }
                         }
                     }
