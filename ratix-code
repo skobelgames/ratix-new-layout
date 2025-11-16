@@ -7413,8 +7413,8 @@
                         pieceSpan.style.color = cell.player === 'W' ? 'black' : 'white';
                         square.appendChild(pieceSpan);
 
-                        // Add fire emoji indicator for dragons that have used Inferno
-                        if (cell.type === 'Dragon' && cell.infernoUsed) {
+                        // Add fire emoji indicator for dragons that have NOT used Inferno
+                        if (cell.type === 'Dragon' && !cell.infernoUsed) {
                             const fireIndicator = document.createElement('span');
                             fireIndicator.className = 'piece-indicator fire-indicator';
                             fireIndicator.textContent = '🔥';
