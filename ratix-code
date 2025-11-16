@@ -7842,8 +7842,7 @@
                             // Only show Summon Necromancer button if prerequisites are met:
                             // 1. Player has sacrificed their Wizard, OR
                             // 2. 10+ pieces have been captured collectively
-                            const meetsPrerequisites = hasNecromancerSummonPrerequisite(currentPlayer);
-                            const canSummonNecro = meetsPrerequisites && canChampionSummonNecromancer(currentPlayer) && hasSlot;
+                            const canSummonNecro = canChampionSummonNecromancer(currentPlayer) && hasSlot;
                             if (canSummonNecro) {
                                 championSummonNecroButton.style.display = 'inline';
                                 championSummonNecroButton.disabled = movesLeft < 2;
