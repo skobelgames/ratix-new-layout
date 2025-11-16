@@ -3871,8 +3871,17 @@
         }
 
         function hasNecromancerSummonPrerequisite(player) {
-            if (wizardSacrificedByPlayer[player]) return true;
-            return getTotalCapturedCount() >= 10;
+            // Check if this player has sacrificed their Wizard
+            if (wizardSacrificedByPlayer && wizardSacrificedByPlayer[player] === true) {
+                return true;
+            }
+            // Check if there are at least 10 captured pieces collectively
+            const totalCaptured = getTotalCapturedCount();
+            if (totalCaptured >= 10) {
+                return true;
+            }
+            // Prerequisites not met
+            return false;
         }
 
         function canChampionSummonNecromancer(player) {
@@ -7830,7 +7839,11 @@
                     if (piece.type === 'Champion' && (gameVariant === '36s-elite' || gameVariant === '36s-supreme')) {
                         const hasSlot = hasBackRowSpawnSlot(currentPlayer);
                         if (championSummonNecroButton) {
-                            const canSummonNecro = canChampionSummonNecromancer(currentPlayer) && hasSlot;
+                            // Only show Summon Necromancer button if prerequisites are met:
+                            // 1. Player has sacrificed their Wizard, OR
+                            // 2. 10+ pieces have been captured collectively
+                            const meetsPrerequisites = hasNecromancerSummonPrerequisite(currentPlayer);
+                            const canSummonNecro = meetsPrerequisites && canChampionSummonNecromancer(currentPlayer) && hasSlot;
                             if (canSummonNecro) {
                                 championSummonNecroButton.style.display = 'inline';
                                 championSummonNecroButton.disabled = movesLeft < 2;
