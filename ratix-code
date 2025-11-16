@@ -2270,6 +2270,7 @@
         let necromancerSummonMode = null; // Necromancer summon targeting state
         let kingShotMode = null; // King shot targeting mode
         let kingEvadeMode = null; // King evade destination selection
+        let kingSummonMode = null; // King summon placement selection { unitType, emptySquares }
         let pendingLichSoulBlast = null; // Tracks pending Soul Blast coin flip
         let lichSoulBlastMode = null; // Soul Blast targeting context
         let lichSoulBlastResolving = false; // Prevent inputs while blast resolves
@@ -3554,6 +3555,7 @@
             darkVoidMode = null;
             kingShotMode = null;
             kingEvadeMode = null;
+            kingSummonMode = null;
             pendingLichSoulBlast = null;
             lichSoulBlastMode = null;
             voidBlastMode = false;
@@ -3806,6 +3808,7 @@
         let spectresSummoned = { 'W': 0, 'B': 0 }; // Spectre summoning (limit 2 per player)
         let wizardSummonedThisTurn = { 'W': false, 'B': false }; // Track if wizard summoned this turn
         let wizardCannotMoveNextTurn = { 'W': new Set(), 'B': new Set() }; // Wizards that cannot move next turn
+        let wizardSacrificedByPlayer = { 'W': false, 'B': false }; // Track if player has sacrificed a wizard
         let necromancersSummoned = { 'W': 0, 'B': 0 }; // Necromancer summoning (limit 2 per player)
         let necromancerTeleportCounts = new Map(); // Track per-piece teleport usage
         let necromancerShootCooldown = new Map(); // Track per-piece ranged cooldown
@@ -3859,7 +3862,14 @@
 
         function canChampionSummonNecromancer(player) {
             if (gameVariant !== '36s-elite' && gameVariant !== '36s-supreme') return false;
-            return (necromancersSummoned[player] || 0) < 2;
+            if ((necromancersSummoned[player] || 0) >= 2) return false;
+
+            // Check if player has sacrificed a wizard (exception to graveyard requirement)
+            if (wizardSacrificedByPlayer[player]) return true;
+
+            // Otherwise, require 10 total captured pieces in graveyard
+            const totalCaptured = (capturedPieces['W'] || []).length + (capturedPieces['B'] || []).length;
+            return totalCaptured >= 10;
         }
 
         function canChampionSummonHuntsman(player) {
@@ -9737,6 +9747,12 @@
                 championCaptured[player] = true;
                 championsOnBackRow[player] = championsOnBackRow[player].filter(([r, c]) => !(r === row && c === col));
             }
+
+            // Track wizard sacrifice for necromancer summoning exception
+            if (piece.type === 'Wizard') {
+                wizardSacrificedByPlayer[player] = true;
+            }
+
             cleanupNecromancerTracking(piece);
             board[row][col] = null;
 
@@ -11340,6 +11356,14 @@
                 return;
             }
 
+            // Handle King summon placement
+            if (kingSummonMode) {
+                if (row === kingSummonMode.backRow && kingSummonMode.emptySquares.includes(col)) {
+                    completeKingSummonPlacement(row, col);
+                }
+                return;
+            }
+
             if (!selectedPiece && piece && piece.player === 'W' && !movedPieces.has(`${row},${col}`)) {
                 // During mercenary bonus turn, only allow selecting the specific mercenary
                 if (mercenaryBonusTurnActive &&
@@ -12621,7 +12645,7 @@
                 `Attempting to summon ${unitType}...`,
                 (success) => {
                     if (success) {
-                        // Find empty square in back row
+                        // Find empty squares in back row
                         const backRow = currentPlayer === 'W' ? ROWS - 1 : 0;
                         let emptySquares = [];
                         for (let c = 0; c < COLS; c++) {
@@ -12631,45 +12655,89 @@
                         }
 
                         if (emptySquares.length > 0) {
-                            // Place unit in first available empty square
-                            const col = emptySquares[0];
-                            const needsFacing = turnablePieces.includes(unitType);
-                            const facing = needsFacing ? (currentPlayer === 'W' ? 'U' : 'D') : null;
-                            board[backRow][col] = { type: unitType, player: currentPlayer, facing };
-
-                            // Update summon counter
-                            if (unitType === 'Pistolier') {
-                                pistoliersSummoned[currentPlayer]++;
-                            } else if (unitType === 'Fusilier') {
-                                fusiliersSummoned[currentPlayer]++;
-                            }
-
-                            gameStats.summonCount[currentPlayer]++; // Track summon for statistics
-                            gameLog.push(`${currentPlayer === 'W' ? 'Player' : 'AI'} successfully summoned ${unitType} at ${formatBoardCoordinates(backRow,col)}!`);
+                            // Enter placement selection mode
+                            kingSummonMode = {
+                                unitType: unitType,
+                                emptySquares: emptySquares,
+                                backRow: backRow
+                            };
+                            gameLog.push(`${currentPlayer === 'W' ? 'Player' : 'AI'} successfully summoned ${unitType}! Select a square on the back row to place it.`);
+                            validMoves = emptySquares.map(col => ({ row: backRow, col: col }));
+                            renderBoard();
+                            updateGameLog();
                         } else {
                             gameLog.push(`${currentPlayer === 'W' ? 'Player' : 'AI'} succeeded summon but no empty squares in back row!`);
+                            lastAction = { move: true };
+                            movedPieces.add(`${selectedPiece.row},${selectedPiece.col}`);
+                            selectedPiece = null;
+                            validMoves = [];
+                            showPieceInfo(null);
+                            renderBoard();
+                            updateStatus();
+                            updateEndTurnButton();
+                            updateGameLog();
+                            checkGameOver();
+                            if (movesLeft === 0 && !reinforcementPending) {
+                                triggerAiTurn();
+                            }
                         }
                     } else {
                         gameLog.push(`${currentPlayer === 'W' ? 'Player' : 'AI'} failed to summon ${unitType}.`);
-                    }
-
-                    lastAction = { move: true };
-                    movedPieces.add(`${selectedPiece.row},${selectedPiece.col}`);
-                    selectedPiece = null;
-                    validMoves = [];
-                    showPieceInfo(null);
-                    renderBoard();
-                    updateStatus();
-                    updateEndTurnButton();
-                    updateGameLog();
-                    checkGameOver();
-                    if (movesLeft === 0 && !reinforcementPending) {
-                        triggerAiTurn();
+                        lastAction = { move: true };
+                        movedPieces.add(`${selectedPiece.row},${selectedPiece.col}`);
+                        selectedPiece = null;
+                        validMoves = [];
+                        showPieceInfo(null);
+                        renderBoard();
+                        updateStatus();
+                        updateEndTurnButton();
+                        updateGameLog();
+                        checkGameOver();
+                        if (movesLeft === 0 && !reinforcementPending) {
+                            triggerAiTurn();
+                        }
                     }
                 },
                 false, // automated
                 false  // showOverlay
             );
+        }
+
+        function completeKingSummonPlacement(row, col) {
+            if (!kingSummonMode) return;
+
+            const { unitType, backRow } = kingSummonMode;
+            const needsFacing = turnablePieces.includes(unitType);
+            const facing = needsFacing ? (currentPlayer === 'W' ? 'U' : 'D') : null;
+
+            // Place the unit at the selected position
+            board[backRow][col] = { type: unitType, player: currentPlayer, facing };
+
+            // Update summon counter
+            if (unitType === 'Pistolier') {
+                pistoliersSummoned[currentPlayer]++;
+            } else if (unitType === 'Fusilier') {
+                fusiliersSummoned[currentPlayer]++;
+            }
+
+            gameStats.summonCount[currentPlayer]++; // Track summon for statistics
+            gameLog.push(`${currentPlayer === 'W' ? 'Player' : 'AI'} placed ${unitType} at ${formatBoardCoordinates(backRow, col)}!`);
+
+            // Clean up and complete action
+            kingSummonMode = null;
+            lastAction = { move: true };
+            movedPieces.add(`${selectedPiece.row},${selectedPiece.col}`);
+            selectedPiece = null;
+            validMoves = [];
+            showPieceInfo(null);
+            renderBoard();
+            updateStatus();
+            updateEndTurnButton();
+            updateGameLog();
+            checkGameOver();
+            if (movesLeft === 0 && !reinforcementPending) {
+                triggerAiTurn();
+            }
         }
 
         function getLichSoulBlastRange(player) {
@@ -14028,6 +14096,15 @@
             }
             return;
         }
+
+        // Handle King summon placement
+        if (kingSummonMode) {
+            if (row === kingSummonMode.backRow && kingSummonMode.emptySquares.includes(col)) {
+                completeKingSummonPlacement(row, col);
+            }
+            return;
+        }
+
             if (necromancerSummonMode && selectedPiece) {
                 let move = validMoves.find(m => m.pos[0] === row && m.pos[1] === col && m.special === 'necromancerSummon');
                 if (!move && necromancerSummonMode && (necromancerSummonMode.type === 'undead' || necromancerSummonMode.type === 'undeadchampion') && board[row]?.[col]?.type === 'DarkVoid') {
