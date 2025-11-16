@@ -7838,17 +7838,15 @@
                     }
                     if (piece.type === 'Champion' && (gameVariant === '36s-elite' || gameVariant === '36s-supreme')) {
                         const hasSlot = hasBackRowSpawnSlot(currentPlayer);
-                        if (championSummonNecroButton) {
+                        if (championSummonNecroButton && movesLeft >= 2 && (necromancersSummoned[currentPlayer] || 0) < 2 && hasSlot) {
                             // Only show Summon Necromancer button if prerequisites are met:
                             // 1. Player has sacrificed their Wizard, OR
                             // 2. 10+ pieces have been captured collectively
-                            const meetsPrerequisites = hasNecromancerSummonPrerequisite(currentPlayer);
-                            const canSummonNecro = meetsPrerequisites && canChampionSummonNecromancer(currentPlayer) && hasSlot;
-                            if (canSummonNecro) {
+                            const wizardSacrificed = wizardSacrificedByPlayer && wizardSacrificedByPlayer[currentPlayer] === true;
+                            const totalCaptured = getTotalCapturedCount();
+                            if (wizardSacrificed || totalCaptured >= 10) {
                                 championSummonNecroButton.style.display = 'inline';
-                                championSummonNecroButton.disabled = movesLeft < 2;
-                            } else {
-                                championSummonNecroButton.style.display = 'none';
+                                championSummonNecroButton.disabled = false;
                             }
                         }
                         if (championSummonHuntsmanButton) {
