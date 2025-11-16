@@ -506,6 +506,21 @@
             bottom: 0px;
             right: 0px;
         }
+        .piece-indicator {
+            font-size: 10px;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            line-height: 1;
+            pointer-events: none;
+        }
+        .fire-indicator {
+            /* Fire emoji for dragon Inferno */
+        }
+        .lives-indicator {
+            /* Heart emojis for undead lives */
+            letter-spacing: 1px;
+        }
         #status {
             width: 100%;
             padding: 10px;
@@ -2755,7 +2770,7 @@
                 <h3>Heavy Assault</h3>
                 <ul>
                     <li><strong>Cavalry - Charge:</strong> Move unlimited squares in one straight direction (costs 2 points, usable once per game). Great for surprise attacks or escaping.</li>
-                    <li><strong>Dragon - Inferno:</strong> Move 1 square and capture all adjacent enemies in a devastating area attack (costs 2 points, usable once per game).</li>
+                    <li><strong>Dragon - Inferno:</strong> Move 1 square and capture all adjacent enemies in a devastating area attack (costs 2 points, each dragon can use once). A fire emoji (🔥) appears on dragons that have used their Inferno.</li>
                     <li><strong>Dragon - Strafe:</strong> Move then attack diagonally (usable twice per game).</li>
                     <li><strong>Ogre - Rage:</strong> Rush 2 squares straight (horizontal or vertical) and capture every enemy in a 2×3 corridor along the path (costs 2 points, usable once per game).</li>
                     <li><strong>Elephantry - Charge:</strong> One-time 3-square charge that captures all enemies along the path (devastating when lanes are clear).</li>
@@ -5739,8 +5754,8 @@
                 extra: 'Cannot move through own pieces. Reduces opponent’s move points by 1 when on their back row. Can activate reinforcements.'
             },
             'Dragon': {
-                points: '1 point to move 1 square diagonally or jump 2 squares diagonally + 1 square in any diagonal direction. Special Moves: Inferno - once per game, move 1 square in any direction for 2 move points, capturing all adjacent opponent pieces (except Dragons); Strafe - twice per game, move 1 square horizontally or vertically for 2 move points (cannot capture).',
-                extra: 'Can change diagonal direction after 2-square jump.'
+                points: '1 point to move 1 square diagonally or jump 2 squares diagonally + 1 square in any diagonal direction. Special Moves: Inferno - each dragon can use once, move 1 square in any direction for 2 move points, capturing all adjacent opponent pieces (except Dragons); Strafe - twice per game, move 1 square horizontally or vertically for 2 move points (cannot capture).',
+                extra: 'Can change diagonal direction after 2-square jump. A fire emoji (🔥) appears on the board when a dragon has used its Inferno ability.'
             },
             'Elephantry': {
                 points: '1 point to move 1 square any direction, shoot 1 square, or turn; 2 points to move+shoot.',
@@ -5768,11 +5783,11 @@
             },
             'Undead': {
                 points: '1 point to move 1 square diagonally; 2 points to strafe horizontally or vertically.',
-                extra: 'Summoned by Necromancers or Liches adjacent to Dark Void tiles. Displays 2 lives (Necromancer summon) or 3 lives (Lich summon) as hearts in the info panel. Every capture attempt and every attack against it requires a coin flip; failed captures leave it rooted while failed attacks send the attacker to the graveyard.'
+                extra: 'Summoned by Necromancers or Liches adjacent to Dark Void tiles. Has 2 lives (Necromancer summon) or 3 lives (Lich summon) shown as heart emojis (♥) on the board and in the info panel. Every capture attempt and every attack against it requires a coin flip; failed captures leave it rooted while failed attacks send the attacker to the graveyard.'
             },
             'UndeadChampion': {
                 points: '1 point to move 1 square in any direction; 2 points for ranged attack up to 2 squares away (1-round cooldown); 2 points to teleport up to 3 squares (once per game).',
-                extra: 'Summoned by Liches adjacent to Dark Void tiles. Maximum 1 per player per game. Has 2 lives displayed as hearts. Ranged attack can target enemies 2 squares away in any direction. Every capture attempt and every attack against it requires a coin flip; failed captures leave it rooted while failed attacks send the attacker to the graveyard.'
+                extra: 'Summoned by Liches adjacent to Dark Void tiles. Maximum 1 per player per game. Has 2 lives shown as heart emojis (♥) on the board and in the info panel. Ranged attack can target enemies 2 squares away in any direction. Every capture attempt and every attack against it requires a coin flip; failed captures leave it rooted while failed attacks send the attacker to the graveyard.'
             },
             'Mercenary': {
                 points: '1 point to move 1 square in any direction; 2 points for 2 squares in any direction.',
@@ -6711,6 +6726,12 @@
                     board[9][c] = { type: backRowW[idx], player: 'W', facing: turnablePieces.includes(backRowW[idx]) ? 'U' : null };
                     board[0][c] = { type: backRowB[idx], player: 'B', facing: turnablePieces.includes(backRowB[idx]) ? 'D' : null };
                     board[1][c] = { type: 'Infantry', player: 'B', facing: 'D' };
+                    if (backRowW[idx] === 'Dragon') {
+                        board[9][c].infernoUsed = false;
+                    }
+                    if (backRowB[idx] === 'Dragon') {
+                        board[0][c].infernoUsed = false;
+                    }
                     if (backRowW[idx] === 'Troll') {
                         firstMoves.add(`9,${c},W`);
                     }
@@ -6731,6 +6752,10 @@
                     board[0][c] = { type: backRowB[idx], player: 'B', facing: turnablePieces.includes(backRowB[idx]) ? 'D' : null };
                     board[1][c] = { type: secondRow[idx], player: 'B', facing: turnablePieces.includes(secondRow[idx]) ? 'D' : null };
                     board[2][c] = { type: 'Infantry', player: 'B', facing: 'D' };
+                    if (secondRow[idx] === 'Dragon') {
+                        board[8][c].infernoUsed = false;
+                        board[1][c].infernoUsed = false;
+                    }
                     if (secondRow[idx] === 'Troll') {
                         firstMoves.add(`8,${c},W`);
                         firstMoves.add(`1,${c},B`);
@@ -6750,6 +6775,10 @@
                     board[0][c] = { type: backRowB[idx], player: 'B', facing: turnablePieces.includes(backRowB[idx]) ? 'D' : null };
                     board[1][c] = { type: secondRow[idx], player: 'B', facing: turnablePieces.includes(secondRow[idx]) ? 'D' : null };
                     board[2][c] = { type: infantryRow[idx], player: 'B', facing: turnablePieces.includes(infantryRow[idx]) ? 'D' : null };
+                    if (secondRow[idx] === 'Dragon') {
+                        board[8][c].infernoUsed = false;
+                        board[1][c].infernoUsed = false;
+                    }
                     if (secondRow[idx] === 'Troll') {
                         firstMoves.add(`8,${c},W`);
                         firstMoves.add(`1,${c},B`);
@@ -6768,6 +6797,10 @@
                     board[0][c] = { type: backRowB[idx], player: 'B', facing: turnablePieces.includes(backRowB[idx]) ? 'D' : null };
                     board[1][c] = { type: secondRow[idx], player: 'B', facing: turnablePieces.includes(secondRow[idx]) ? 'D' : null };
                     board[2][c] = { type: infantryRow[idx], player: 'B', facing: turnablePieces.includes(infantryRow[idx]) ? 'D' : null };
+                    if (secondRow[idx] === 'Dragon') {
+                        board[8][c].infernoUsed = false;
+                        board[1][c].infernoUsed = false;
+                    }
                     if (secondRow[idx] === 'Troll') {
                         firstMoves.add(`8,${c},W`);
                         firstMoves.add(`1,${c},B`);
@@ -6782,6 +6815,12 @@
                     board[7][c] = { type: backRowW[c], player: 'W', facing: turnablePieces.includes(backRowW[c]) ? 'U' : null };
                     board[0][c] = { type: backRowB[c], player: 'B', facing: turnablePieces.includes(backRowB[c]) ? 'D' : null };
                     board[1][c] = { type: infantryRow[c], player: 'B', facing: 'D' };
+                    if (backRowW[c] === 'Dragon') {
+                        board[7][c].infernoUsed = false;
+                    }
+                    if (backRowB[c] === 'Dragon') {
+                        board[0][c].infernoUsed = false;
+                    }
                     if (backRowW[c] === 'Troll') {
                         firstMoves.add(`7,${c},W`);
                     }
@@ -7373,6 +7412,23 @@
                         pieceSpan.textContent = pieceIcons[cell.type];
                         pieceSpan.style.color = cell.player === 'W' ? 'black' : 'white';
                         square.appendChild(pieceSpan);
+
+                        // Add fire emoji indicator for dragons that have used Inferno
+                        if (cell.type === 'Dragon' && cell.infernoUsed) {
+                            const fireIndicator = document.createElement('span');
+                            fireIndicator.className = 'piece-indicator fire-indicator';
+                            fireIndicator.textContent = '🔥';
+                            square.appendChild(fireIndicator);
+                        }
+
+                        // Add heart emoji indicators for undead/undead champion lives
+                        if ((isUndeadType(cell) || isUndeadChampionType(cell)) && cell.lives > 0) {
+                            const livesIndicator = document.createElement('span');
+                            livesIndicator.className = 'piece-indicator lives-indicator';
+                            livesIndicator.textContent = '♥'.repeat(cell.lives);
+                            square.appendChild(livesIndicator);
+                        }
+
                         if (cell.facing) {
                             const arrow = document.createElement('span');
                             arrow.className = 'piece-arrow';
@@ -7962,7 +8018,7 @@
                         ogreRageButton.disabled = false;
                     }
                     // Show Inferno button
-                    if (piece.type === 'Dragon' && !dragonInfernoUsed[currentPlayer] && movesLeft >= 2) {
+                    if (piece.type === 'Dragon' && !piece.infernoUsed && movesLeft >= 2) {
                         infernoButton.style.display = 'inline';
                         infernoButton.disabled = false;
                     }
@@ -9267,9 +9323,9 @@
         }
 
         function activateInferno(button = null) {
-            if (!selectedPiece || currentPlayer !== 'W' || reinforcementPending || lastAction?.move || movesLeft < 2 || dragonInfernoUsed[currentPlayer]) return;
+            if (!selectedPiece || currentPlayer !== 'W' || reinforcementPending || lastAction?.move || movesLeft < 2) return;
             const piece = board[selectedPiece.row][selectedPiece.col];
-            if (piece.type === 'Dragon') {
+            if (piece.type === 'Dragon' && !piece.infernoUsed) {
                 setActiveControlButton(button || document.getElementById('inferno-button'));
                 infernoMode = true;
                 validMoves = getValidMoves(selectedPiece.row, selectedPiece.col); // This will now get Inferno moves
@@ -10398,8 +10454,11 @@
                     // 2. Perform the adjacent Inferno captures
                     performInfernoCapture(toRow, toCol, currentPlayer);
 
-                    // 3. Update state
-                    dragonInfernoUsed[currentPlayer] = true;
+                    // 3. Update state - mark this dragon as having used Inferno
+                    const dragonPiece = board[toRow][toCol];
+                    if (dragonPiece) {
+                        dragonPiece.infernoUsed = true;
+                    }
                     movesLeft -= move.cost;
                     lastAction = { move: true };
                     movedPieces.add(`${fromRow},${fromCol}`);
@@ -13183,8 +13242,11 @@
                     // 2. Perform the adjacent Inferno captures
                     performInfernoCapture(toRow, toCol, currentPlayer);
 
-                    // 3. Update state
-                    dragonInfernoUsed[currentPlayer] = true;
+                    // 3. Update state - mark this dragon as having used Inferno
+                    const dragonPiece = board[toRow][toCol];
+                    if (dragonPiece) {
+                        dragonPiece.infernoUsed = true;
+                    }
                     movesLeft -= move.cost;
                     lastAction = { move: true };
                     movedPieces.add(`${fromRow},${fromCol}`);
@@ -15017,9 +15079,9 @@
             const type = piece.type;
             const player = piece.player;
             let valid = [];
-            
+
             // Handle Inferno Mode
-            if (type === 'Dragon' && infernoMode && !dragonInfernoUsed[player] && movesLeft >= 2) {
+            if (type === 'Dragon' && infernoMode && !piece.infernoUsed && movesLeft >= 2) {
                 const directions = [[0,1], [0,-1], [1,0], [-1,0], [1,1], [1,-1], [-1,1], [-1,-1]];
                 for (let d of directions) {
                     let nr = row + d[0], nc = col + d[1];
@@ -16330,9 +16392,9 @@
                                     targetValue: targetValue
                                 });
                             }
-                            
+
                             // Check for Dragon Inferno
-                            if (piece.type === 'Dragon' && !dragonInfernoUsed[player] && movesLeft >= 2) {
+                            if (piece.type === 'Dragon' && !piece.infernoUsed && movesLeft >= 2) {
                                 const directions = [[0,1], [0,-1], [1,0], [-1,0], [1,1], [1,-1], [-1,1], [-1,-1]];
                                 for (let d of directions) {
                                     if (aiTimeExpired()) break outerBuild;
@@ -17059,9 +17121,9 @@
                                 if (beta <= alpha) break;
                             }
                             if (beta <= alpha) break;
-                            
+
                             // Check for Dragon Inferno for opponent
-                            if (piece.type === 'Dragon' && !dragonInfernoUsed[opponent] && movesLeft >= 2) {
+                            if (piece.type === 'Dragon' && !piece.infernoUsed && movesLeft >= 2) {
                                 const directions = [[0,1], [0,-1], [1,0], [-1,0], [1,1], [1,-1], [-1,1], [-1,-1]];
                                 for (let d of directions) {
                                     if (aiTimeExpired()) break;
@@ -17234,7 +17296,10 @@
                 }
                 if (special === 'inferno') {
                     performInfernoCapture(action.pos[0], action.pos[1], 'B');
-                    dragonInfernoUsed['B'] = true;
+                    const dragonPiece = board[action.pos[0]][action.pos[1]];
+                    if (dragonPiece) {
+                        dragonPiece.infernoUsed = true;
+                    }
                 }
                 if (special === 'strafe') {
                     const piece = board[action.pos[0]][action.pos[1]];
